@@ -1,0 +1,7 @@
+# Videos that have been recorded
+videos/*
+
+# Temp Files
+*.swp
+*.swo
+*~
