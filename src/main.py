@@ -17,12 +17,17 @@ recording = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=int, default=0, help="Video Device number e.g. 0, use v4l2-ctl --list-devices")
+parser.add_argument("--singleframe", type=bool, default=False, help="Use single frame camera instead of dual output thermal")
 args = parser.parse_args()
 	
 if args.device:
 	dev = args.device
 else:
 	dev = 0
+if args.singleframe:
+	singleframe = args.singleframe
+else:
+	singleframe = False
 	
 
 #init video
@@ -73,8 +78,11 @@ while(cap.isOpened()):
 
 	# If we successfully read the camera's frame
 	if ret == True:
-		# Split the Image data from the Thermal data
-		imdata,thdata = np.array_split(frame, 2)
+		if singleframe:
+			imdata = frame
+		else:
+			# Split the Image data from the Thermal data
+			imdata,thdata = np.array_split(frame, 2)
 
 
 		# Convert the real image to RGB
