@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import argparse
 import time
+import subprocess
+from gpiozero import AngularServo
 
 # Global Flags
 scale = 3
@@ -19,6 +21,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=int, default=0, help="Video Device number e.g. 0, use v4l2-ctl --list-devices")
 parser.add_argument("--singleframe", type=bool, default=False, help="Use single frame camera instead of dual output thermal")
 args = parser.parse_args()
+
+
+# Initialize servo on GPIO 17
+servo = AngularServo(17, min_pulse_width=0.0006, max_pulse_width=0.0025)
+servo.angle = -90
 	
 if args.device:
 	dev = args.device
@@ -60,7 +67,18 @@ detector = cv2.SimpleBlobDetector_create(blob_params)
 
 # Define functions before main loop
 
+def play_sound(file):
+	subprocess.run(["aplay","-D","default:CARD=Device",file])
+
+def articulate_jaw():
+	servo.angle = -90
+	time.sleep(1)
+	servo.angle = 90
+	time.sleep(1)
+
 def rec():
+	play_sound("/home/njeffers/heydeer2.wav")
+	articulate_jaw()
 	now = time.strftime("%Y%m%d--%H%M%S")
 	#do NOT use mp4 here, it is flakey!
 	videoOut = cv2.VideoWriter('videos/'+now+'output.avi', cv2.VideoWriter_fourcc(*'XVID'),25, (scaledWidth,scaledHeight))
@@ -105,14 +123,14 @@ while(cap.isOpened()):
 
 
 		if threshold:
-			ret,heatmap = cv2.threshold(heatmap, 127, 255, cv2.THRESH_BINARY)
+			ret,heatmap = cv2.threshold(heatmap, 200, 255, cv2.THRESH_BINARY)
 		if laplace:
 			heatmap = cv2.Laplacian(src=heatmap, ddepth=cv2.CV_8U, ksize=3)
 
 		# Do image processing for blob detection
 		grey_img = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 		grey_img = cv2.GaussianBlur(grey_img, (7,7), 0)
-		ret,grey_img = cv2.threshold(grey_img, 127, 255, cv2.THRESH_BINARY)
+		ret,grey_img = cv2.threshold(grey_img, 200, 255, cv2.THRESH_BINARY)
 		keypoints = detector.detect(grey_img)
 		heatmap = cv2.drawKeypoints(heatmap, keypoints, np.array([]), (255,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
